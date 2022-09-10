@@ -8,6 +8,18 @@ message Message {
     string body = 1;
 }
 
+message Contencion {
+    enum contencionStatus{
+        LISTO = 0;
+        NOLISTO = 1;
+    }
+    contencionStatus status = 2;
+    string body = 3;
+}
+
+
 service MessageService {
     rpc Intercambio (Message) returns (Message);
+    rpc ContencionStatus (Message) returns (Contencion);
 }
+

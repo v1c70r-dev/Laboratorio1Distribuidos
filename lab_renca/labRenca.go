@@ -13,20 +13,49 @@ import (
 	"google.golang.org/grpc"
 )
 
+// variables globales
+var CLOSE_SYNCHRONOUS_CONNECTION = false
+
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
 }
 
-// Permite coenxión cola síncrona proto
+// Permite conexión cola síncrona proto
 type server struct {
 	pb.UnimplementedMessageServiceServer
 }
 
-func (s *server) Intercambio(ctx context.Context, msg *pb.Message) (*pb.Message, error) {
-	fmt.Println(msg.Body)
-	return &pb.Message{Body: "NO"}, nil
+// func (s *server) Intercambio(ctx context.Context, msg *pb.Message) (*pb.Message, error) {
+// 	estadoContencion := ""
+
+// 	if contencion() {
+// 		estadoContencion = "[LISTO]"
+// 		//se cierra la conexión
+// 	} else {
+// 		estadoContencion = "[NO LISTO]"
+// 	}
+// 	log.Println(msg.Body + estadoContencion)
+// 	return &pb.Message{Body: estadoContencion}, nil
+// }
+
+func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Contencion, error) {
+	ecs := pb.Contencion_NOLISTO
+	puerto := "50051"
+
+	estadoContencion := ""
+	if contencion() {
+		estadoContencion = "[LISTO]"
+		ecs = pb.Contencion_LISTO
+		//se cierra la conexión
+		CLOSE_SYNCHRONOUS_CONNECTION = true
+	} else {
+		estadoContencion = "[NO LISTO]"
+		ecs = pb.Contencion_NOLISTO
+	}
+	log.Println(msg.Body + estadoContencion)
+	return &pb.Contencion{Status: ecs, Body: puerto}, nil
 }
 
 func main() {
@@ -67,12 +96,17 @@ func main() {
 			Body:        []byte(body),
 		})
 	failOnError(err, "Failed to publish a message")
-	log.Printf(" [x] Sent %s\n", body)
+	// log.Printf(" [x] Sent %s\n", body)
 
 	//Conexión cola síncrona (proto)
 	listener, err := net.Listen("tcp", ":50051") //conexion sincrona
 	if err != nil {
 		panic("La conexion no se pudo crear" + err.Error())
+	}
+
+	if CLOSE_SYNCHRONOUS_CONNECTION {
+		fmt.Println("cerrando conexion!")
+		listener.Close()
 	}
 
 	serv := grpc.NewServer()
@@ -82,6 +116,7 @@ func main() {
 			panic("El server no se pudo iniciar" + err.Error())
 		}
 	}
+
 }
 
 /*
@@ -113,11 +148,32 @@ func statusUpdateEstallido() bool {
 
 	if random < 5 {
 		estallido = true //true
-		fmt.Println("Analizando estado Laboratorio: [ ESTALLIDO ]")
+		fmt.Println("Analizando estado Laboratorio: [ESTALLIDO]")
 	} else {
 		estallido = false //false
-		fmt.Println("Analizando estado Laboratorio: [ OK ]")
+		fmt.Println("Analizando estado Laboratorio: [OK]")
 	}
 
 	return estallido
+}
+
+/*
+Retorna true si el estallido ha sido contenido, false caso contrario
+*/
+func contencion() bool {
+	//Se generan números equiprobables del 1 al 5. Números del 1 al 3 => contenida
+	// y 4,5 => no contenida. Esto da 3/5 (o 0.6) de pbb de contención resuelta y 0.4 no
+	contencion := false
+	max := 6
+	min := 1
+	random := rand.Intn(max-min) + min
+	if random < 4 {
+		contencion = true
+		// log.Println("Revisando estado Escuadrón: [ LISTO ]")
+	} else {
+		contencion = false
+		// log.Println("Revisando estado Escuadrón: [ NO LISTO ]")
+	}
+
+	return contencion
 }

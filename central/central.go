@@ -67,28 +67,44 @@ func main() {
 
 		for {
 			//envia el mensaje al laboratorio
-			res, err := serviceCliente.Intercambio(context.Background(),
+			// res, err := serviceCliente.Intercambio(context.Background(),
+			// 	&pb.Message{
+			// 		Body: "Revisando estado Escuadrón: ",
+			// 	})
+
+			// if err != nil {
+			// 	panic("No se puede crear el mensaje " + err.Error())
+			// }
+
+			// log.Println(res.Body)       //respuesta del laboratorio
+			// time.Sleep(5 * time.Second) //espera de 5 segundos
+			//defer connS.Close()
+
+			//Revisa el estado de contencion/escuadron del laboratorio
+			//enviando un mensaje al laboratorio
+			res, err := serviceCliente.ContencionStatus(
+				context.Background(),
 				&pb.Message{
-					Body: "Equipo listo?",
+					Body: "Revisando estado Escuadrón: ",
 				})
 
 			if err != nil {
 				panic("No se puede crear el mensaje " + err.Error())
 			}
 
-			fmt.Println(res.Body)       //respuesta del laboratorio
-			time.Sleep(5 * time.Second) //espera de 5 segundos
-			defer connS.Close()
+			log.Println(res.Status, res.Body) //respuesta del laboratorio
+			// time.Sleep(5 * time.Second)       //espera de 5 segundos
+			// defer connS.Close()
+
+			//Si esta contenido el estallido, se cierra la conexion con el lab
+			if res.Status.String() == "LISTO" {
+				log.Println("Laboratorio ha cerrado la conexión")
+			} else {
+				//Continua checkeando el estado de la contencion
+				time.Sleep(5 * time.Second) //espera de 5 segundos
+			}
 		}
 	}
-
-	// go func() {
-	// 	for d := range msgs {
-	// 		log.Printf("Received a message: %s", d.Body)
-	// 		//fmt.Println("Queue content", q)
-
-	// 	}
-	// }()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
