@@ -13,10 +13,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// variables globales
-// var CLOSE_SYNCHRONOUS_CONNECTION = false
-var CENTRAL_CLOSE_SIGNAL = false
-
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
@@ -28,22 +24,9 @@ type server struct {
 	pb.UnimplementedMessageServiceServer
 }
 
-// func (s *server) Intercambio(ctx context.Context, msg *pb.Message) (*pb.Message, error) {
-// 	estadoContencion := ""
-
-// 	if contencion() {
-// 		estadoContencion = "[LISTO]"
-// 		//se cierra la conexión
-// 	} else {
-// 		estadoContencion = "[NO LISTO]"
-// 	}
-// 	log.Println(msg.Body + estadoContencion)
-// 	return &pb.Message{Body: estadoContencion}, nil
-// }
-
 func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Contencion, error) {
 	ecs := pb.Contencion_NOLISTO
-	puerto := "50051"
+	puerto := "50055"
 	estadoContencion := ""
 	if contencion() {
 		estadoContencion = "[LISTO]"
@@ -58,21 +41,11 @@ func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Con
 	return &pb.Contencion{Status: ecs, Body: puerto}, nil
 }
 
-// func (s *server) TerminarConn(ctx context.Context, msg *TerminarConnMsg) (*TerminarConnMsg, error) {
-// 	endConn := ""
-// 	if msg == "TERMINARCONN" {
-// 		endConn = "CONN_OFF"
-// 	} else {
-// 		endConn = "CONN_ON"
-// 	}
-// 	return &pb.TerminarConnMsg{Body: endConn}, nil
-// }
-
 func main() {
 
-	labName := "labRenca" //nombre del laboratorio
-	helpQueue := "SOS"    //nombre de la cola
-	hostQ := "localhost"  //ip del servidor de RabbitMQ 172.17.0.1
+	labName := "labPohang" //nombre del laboratorio
+	helpQueue := "SOS"     //nombre de la cola
+	hostQ := "localhost"   //ip del servidor de RabbitMQ 172.17.0.1
 
 	/******************Conexión con Rabbitmq******************/
 
@@ -97,38 +70,30 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for !CENTRAL_CLOSE_SIGNAL {
-		//Mensaje enviado a la cola de RabbitMQ (Llamado de emergencia)
-		body := Estallido(labName)
-		err = ch.PublishWithContext(ctx,
-			"",     // exchange
-			q.Name, // routing key
-			false,  // mandatory
-			false,  // immediate
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        []byte(body),
-			})
-		failOnError(err, "Failed to publish a message")
+	//Mensaje enviado a la cola de RabbitMQ (Llamado de emergencia)
+	body := Estallido(labName)
+	err = ch.PublishWithContext(ctx,
+		"",     // exchange
+		q.Name, // routing key
+		false,  // mandatory
+		false,  // immediate
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(body),
+		})
+	failOnError(err, "Failed to publish a message")
 
-		/******************Conexión cola síncrona (proto)******************/
-		listener, err := net.Listen("tcp", ":50051") //conexion sincrona
-		if err != nil {
-			panic("La conexion no se pudo crear" + err.Error())
-		}
+	/******************Conexión cola síncrona (proto)******************/
+	listener, err := net.Listen("tcp", ":50055") //conexion sincrona
+	if err != nil {
+		panic("La conexion no se pudo crear" + err.Error())
+	}
 
-		//fmt.Println("CLOSE_SYNCHRONOUS_CONNECTION", CLOSE_SYNCHRONOUS_CONNECTION)
-		// if CLOSE_SYNCHRONOUS_CONNECTION {
-		// 	fmt.Println("cerrando conexion!")
-		// 	listener.Close()
-		// }
-
-		serv := grpc.NewServer()
-		for {
-			pb.RegisterMessageServiceServer(serv, &server{})
-			if err = serv.Serve(listener); err != nil {
-				panic("El server no se pudo iniciar" + err.Error())
-			}
+	serv := grpc.NewServer()
+	for {
+		pb.RegisterMessageServiceServer(serv, &server{})
+		if err = serv.Serve(listener); err != nil {
+			panic("El server no se pudo iniciar" + err.Error())
 		}
 	}
 }

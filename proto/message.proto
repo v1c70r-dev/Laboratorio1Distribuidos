@@ -17,9 +17,13 @@ message Contencion {
     string body = 3;
 }
 
+message TerminarConnMsg{
+    string body = 1;
+}
 
 service MessageService {
     rpc Intercambio (Message) returns (Message);
     rpc ContencionStatus (Message) returns (Contencion);
+    rpc TerminarConn(TerminarConnMsg) returns (TerminarConnMsg);
 }
 

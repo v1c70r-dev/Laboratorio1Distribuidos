@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type MessageServiceClient interface {
 	Intercambio(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
 	ContencionStatus(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Contencion, error)
+	TerminarConn(ctx context.Context, in *TerminarConnMsg, opts ...grpc.CallOption) (*TerminarConnMsg, error)
 }
 
 type messageServiceClient struct {
@@ -52,12 +53,22 @@ func (c *messageServiceClient) ContencionStatus(ctx context.Context, in *Message
 	return out, nil
 }
 
+func (c *messageServiceClient) TerminarConn(ctx context.Context, in *TerminarConnMsg, opts ...grpc.CallOption) (*TerminarConnMsg, error) {
+	out := new(TerminarConnMsg)
+	err := c.cc.Invoke(ctx, "/grpc.MessageService/TerminarConn", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MessageServiceServer is the server API for MessageService service.
 // All implementations must embed UnimplementedMessageServiceServer
 // for forward compatibility
 type MessageServiceServer interface {
 	Intercambio(context.Context, *Message) (*Message, error)
 	ContencionStatus(context.Context, *Message) (*Contencion, error)
+	TerminarConn(context.Context, *TerminarConnMsg) (*TerminarConnMsg, error)
 	mustEmbedUnimplementedMessageServiceServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedMessageServiceServer) Intercambio(context.Context, *Message) 
 }
 func (UnimplementedMessageServiceServer) ContencionStatus(context.Context, *Message) (*Contencion, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ContencionStatus not implemented")
+}
+func (UnimplementedMessageServiceServer) TerminarConn(context.Context, *TerminarConnMsg) (*TerminarConnMsg, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TerminarConn not implemented")
 }
 func (UnimplementedMessageServiceServer) mustEmbedUnimplementedMessageServiceServer() {}
 
@@ -120,6 +134,24 @@ func _MessageService_ContencionStatus_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MessageService_TerminarConn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TerminarConnMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServiceServer).TerminarConn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/grpc.MessageService/TerminarConn",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServiceServer).TerminarConn(ctx, req.(*TerminarConnMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MessageService_ServiceDesc is the grpc.ServiceDesc for MessageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ContencionStatus",
 			Handler:    _MessageService_ContencionStatus_Handler,
+		},
+		{
+			MethodName: "TerminarConn",
+			Handler:    _MessageService_TerminarConn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
