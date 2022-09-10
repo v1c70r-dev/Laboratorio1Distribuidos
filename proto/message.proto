@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package grpc;
+
+option go_package = "github.com/v1c70r-dev/Laboratorio1Distribuidos/proto";
+
+message Message {
+    string body = 1;
+}
+
+service MessageService {
+    rpc Intercambio (Message) returns (Message);
+}
