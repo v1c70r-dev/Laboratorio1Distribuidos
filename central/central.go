@@ -97,7 +97,8 @@ func main() {
 			log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
 			time.Sleep(5 * time.Second) //espera de 5 segundos
 		} else {
-			log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
+			log.Println("_Status Escuadra X: " + res.Status.String() + " " + res.Body)
+			connS.Close()
 		}
 
 	}

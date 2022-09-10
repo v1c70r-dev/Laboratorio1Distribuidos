@@ -41,11 +41,28 @@ func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Con
 	return &pb.Contencion{Status: ecs, Body: puerto}, nil
 }
 
+// var global
+//var grpcServer *grpc.Server
+
 func main() {
 
 	labName := "labPohang" //nombre del laboratorio
 	helpQueue := "SOS"     //nombre de la cola
 	hostQ := "localhost"   //ip del servidor de RabbitMQ 172.17.0.1
+
+	/******************Conexión cola síncrona (proto)******************/
+	go func() {
+		listener, err := net.Listen("tcp", ":50055") //conexion sincrona
+		if err != nil {
+			panic("La conexion no se pudo crear" + err.Error())
+		}
+		grpcServer := grpc.NewServer()
+		pb.RegisterMessageServiceServer(grpcServer, &server{})
+		if err = grpcServer.Serve(listener); err != nil {
+			panic("El server no se pudo iniciar" + err.Error())
+		}
+	}()
+	time.Sleep(1 * time.Second)
 
 	/******************Conexión con Rabbitmq******************/
 
@@ -70,31 +87,19 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	//Mensaje enviado a la cola de RabbitMQ (Llamado de emergencia)
-	body := Estallido(labName)
-	err = ch.PublishWithContext(ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,  // immediate
-		amqp.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(body),
-		})
-	failOnError(err, "Failed to publish a message")
-
-	/******************Conexión cola síncrona (proto)******************/
-	listener, err := net.Listen("tcp", ":50055") //conexion sincrona
-	if err != nil {
-		panic("La conexion no se pudo crear" + err.Error())
-	}
-
-	serv := grpc.NewServer()
 	for {
-		pb.RegisterMessageServiceServer(serv, &server{})
-		if err = serv.Serve(listener); err != nil {
-			panic("El server no se pudo iniciar" + err.Error())
-		}
+		//Mensaje enviado a la cola de RabbitMQ (Llamado de emergencia)
+		body := Estallido(labName)
+		err = ch.PublishWithContext(ctx,
+			"",     // exchange
+			q.Name, // routing key
+			false,  // mandatory
+			false,  // immediate
+			amqp.Publishing{
+				ContentType: "text/plain",
+				Body:        []byte(body),
+			})
+		failOnError(err, "Failed to publish a message")
 	}
 }
 
