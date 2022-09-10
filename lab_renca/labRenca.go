@@ -46,9 +46,9 @@ func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Con
 
 func main() {
 
-	labName := "labPohang" //nombre del laboratorio
-	helpQueue := "SOS"     //nombre de la cola
-	hostQ := "localhost"   //ip del servidor de RabbitMQ 172.17.0.1
+	labName := "labRenca" //nombre del laboratorio
+	helpQueue := "SOS"    //nombre de la cola
+	hostQ := "localhost"  //ip del servidor de RabbitMQ 172.17.0.1
 
 	/******************Conexión cola síncrona (proto)******************/
 	go func() {
