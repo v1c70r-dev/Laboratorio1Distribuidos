@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	labName = "labRenca" //nombre del laboratorio
+	labName    = "labRenca" //nombre del laboratorio
+	msgEnviado = false
 )
 
 func failOnError(err error, msg string) {
@@ -46,6 +47,8 @@ func (s *server) ContencionStatus(ctx context.Context, msg *pb.EquipoEnviadoPorC
 	//Se evalua estado de contencion
 	if contencion() {
 		ecs = pb.Contencion_LISTO
+		msgEnviado = false
+		log.Println("Estallido contenido," + equipoEnviadoPorLaCentral + " retornando...")
 	} else {
 		ecs = pb.Contencion_NOLISTO
 	}
@@ -113,19 +116,26 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	//msgEnviado := false
+
 	for {
-		//Mensaje enviado a la cola de RabbitMQ (Llamado de emergencia)
-		body := Estallido(labName)
-		err = ch.PublishWithContext(ctx,
-			"",     // exchange
-			q.Name, // routing key
-			false,  // mandatory
-			false,  // immediate
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        []byte(body),
-			})
-		failOnError(err, "Failed to publish a message")
+		//log.Println("msgenviado", msgEnviado)
+		if !msgEnviado {
+
+			//Mensaje enviado a la cola de RabbitMQ (Llamado de emergencia)
+			body := Estallido(labName)
+			err = ch.PublishWithContext(ctx,
+				"",     // exchange
+				q.Name, // routing key
+				false,  // mandatory
+				false,  // immediate
+				amqp.Publishing{
+					ContentType: "text/plain",
+					Body:        []byte(body),
+				})
+			failOnError(err, "Failed to publish a message")
+			msgEnviado = true
+		}
 	}
 }
 

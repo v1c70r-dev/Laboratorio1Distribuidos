@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// labRenca, labPohan, labPripiat
+// labRenca, labPohang, labPripiat
 var (
 	puertos  = [4]string{":50051", ":50055", ":50059", ":50063"}
 	equipo1_ = true //disponibilidad
@@ -64,6 +64,7 @@ func main() {
 	port := "" //puerto de la conexion con el laboratorio
 
 	for delivery := range chDelivery {
+
 		labName := string(delivery.Body)
 		fmt.Println("Mensaje asíncrono de laboratorio " + labName + " leído") //obtiene el primer mensaje de la cola
 
@@ -125,6 +126,7 @@ func main() {
 				} else {
 					escuadronNoListo = false
 					log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
+					log.Println("Retorno a Central " + res.NombreEscuadron + ", Conexión Laboratorio" + resDisp.NombreLab + "Cerrada")
 					equipo1_ = true //vuelve a quedar disponible
 					connS.Close()   //Se cierra la conexión
 				}
@@ -157,6 +159,7 @@ func main() {
 				} else {
 					escuadronNoListo = false
 					log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
+					log.Println("Retorno a Central " + res.NombreEscuadron + ", Conexión Laboratorio" + resDisp.NombreLab + "Cerrada")
 					equipo2_ = true //vuelve a quedar disponible
 					connS.Close()   //Se cierra la conexión
 				}
