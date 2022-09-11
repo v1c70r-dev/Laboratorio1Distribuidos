@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// labRenca, labPohang, labPripiat
+// labRenca, labPohang, labPripiat, labKampala
 var (
 	puertos  = [4]string{":50051", ":50055", ":50059", ":50063"}
 	equipo1_ = true //disponibilidad
@@ -74,8 +74,9 @@ func main() {
 			port = puertos[1]
 		} else if labName == "labPripiat" {
 			port = puertos[2]
+		} else if labName == "labKampala" {
+			port = puertos[3]
 		}
-
 		/** Crea la conexion sincrona con el laboratorio **/
 		connS, err := grpc.Dial(hostS+port, grpc.WithInsecure())
 
@@ -173,6 +174,7 @@ func main() {
 				}
 			}
 		}()
+
 		// else if resDisp.Equipox == "NOHAYESCUADRA" {
 		// 	/*La idea es q Solo se consuman msg de rabbit cuando exista al menos un equipo
 		// 	disponible en la central*/
