@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MessageServiceClient interface {
 	Intercambio(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
-	ContencionStatus(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Contencion, error)
+	ContencionStatus(ctx context.Context, in *EquipoEnviadoPorCentral, opts ...grpc.CallOption) (*Contencion, error)
 	CheckDispEscuadron(ctx context.Context, in *Escuadron, opts ...grpc.CallOption) (*EscuadronUsar, error)
 }
 
@@ -44,7 +44,7 @@ func (c *messageServiceClient) Intercambio(ctx context.Context, in *Message, opt
 	return out, nil
 }
 
-func (c *messageServiceClient) ContencionStatus(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Contencion, error) {
+func (c *messageServiceClient) ContencionStatus(ctx context.Context, in *EquipoEnviadoPorCentral, opts ...grpc.CallOption) (*Contencion, error) {
 	out := new(Contencion)
 	err := c.cc.Invoke(ctx, "/grpc.MessageService/ContencionStatus", in, out, opts...)
 	if err != nil {
@@ -67,7 +67,7 @@ func (c *messageServiceClient) CheckDispEscuadron(ctx context.Context, in *Escua
 // for forward compatibility
 type MessageServiceServer interface {
 	Intercambio(context.Context, *Message) (*Message, error)
-	ContencionStatus(context.Context, *Message) (*Contencion, error)
+	ContencionStatus(context.Context, *EquipoEnviadoPorCentral) (*Contencion, error)
 	CheckDispEscuadron(context.Context, *Escuadron) (*EscuadronUsar, error)
 	mustEmbedUnimplementedMessageServiceServer()
 }
@@ -79,7 +79,7 @@ type UnimplementedMessageServiceServer struct {
 func (UnimplementedMessageServiceServer) Intercambio(context.Context, *Message) (*Message, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Intercambio not implemented")
 }
-func (UnimplementedMessageServiceServer) ContencionStatus(context.Context, *Message) (*Contencion, error) {
+func (UnimplementedMessageServiceServer) ContencionStatus(context.Context, *EquipoEnviadoPorCentral) (*Contencion, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ContencionStatus not implemented")
 }
 func (UnimplementedMessageServiceServer) CheckDispEscuadron(context.Context, *Escuadron) (*EscuadronUsar, error) {
@@ -117,7 +117,7 @@ func _MessageService_Intercambio_Handler(srv interface{}, ctx context.Context, d
 }
 
 func _MessageService_ContencionStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Message)
+	in := new(EquipoEnviadoPorCentral)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func _MessageService_ContencionStatus_Handler(srv interface{}, ctx context.Conte
 		FullMethod: "/grpc.MessageService/ContencionStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).ContencionStatus(ctx, req.(*Message))
+		return srv.(MessageServiceServer).ContencionStatus(ctx, req.(*EquipoEnviadoPorCentral))
 	}
 	return interceptor(ctx, in, info, handler)
 }

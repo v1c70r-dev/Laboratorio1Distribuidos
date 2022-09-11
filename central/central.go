@@ -14,43 +14,17 @@ import (
 )
 
 // labRenca, labPohan, labPripiat
-var puertos = [4]string{":50051", ":50055", ":50059", ":50063"}
-var equipo1_ = true //disponibilidad
-var equipo2_ = true
+var (
+	puertos  = [4]string{":50051", ":50055", ":50059", ":50063"}
+	equipo1_ = true //disponibilidad
+	equipo2_ = true
+)
 
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Panicf("%s: %s", msg, err)
 	}
 }
-
-// func estadoContencionFun(serviceCliente){
-// 	res, err := serviceCliente.ContencionStatus(
-// 		context.Background(),
-// 		&pb.Message{
-// 			Body: "Revisando estado Escuadrón: ",
-// 		})
-// 	if err != nil {
-// 		panic("No se puede crear el mensaje " + err.Error())
-// 	}
-// 	//log.Println(res.Status, res.Body) //respuesta del laboratorio
-// 	//Si esta contenido el estallido, ¿el lab cierra conexión con la central?
-// 	if res.Status.String() == "NOLISTO" {
-// 		//Checkea estado contencion
-// 		log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
-// 		time.Sleep(5 * time.Second) //espera de 5 segundos
-// 	} else {
-// 		log.Println("_Status Escuadra X: " + res.Status.String() + " " + res.Body)
-// 		//connS.Close()
-// 		if res.Body == "equipo1" {
-// 			log.Println("if del equipo1")
-// 			equipo1_ = true //disponible
-// 		} else if res.Body == "equipo2" {
-// 			log.Println("if del equipo2")
-// 			equipo2_ = true //disponible
-// 		}
-// 	}
-// }
 
 func main() {
 
@@ -90,9 +64,8 @@ func main() {
 	port := "" //puerto de la conexion con el laboratorio
 
 	for delivery := range chDelivery {
-
 		labName := string(delivery.Body)
-		fmt.Println("Pedido de ayuda de " + labName) //obtiene el primer mensaje de la cola
+		fmt.Println("Mensaje asíncrono de laboratorio " + labName + " leído") //obtiene el primer mensaje de la cola
 
 		if labName == "labRenca" {
 			port = puertos[0]
@@ -102,9 +75,8 @@ func main() {
 			port = puertos[2]
 		}
 
-		fmt.Println("port: ", port)
-
-		connS, err := grpc.Dial(hostS+port, grpc.WithInsecure()) //crea la conexion sincrona con el laboratorio
+		/** Crea la conexion sincrona con el laboratorio **/
+		connS, err := grpc.Dial(hostS+port, grpc.WithInsecure())
 
 		if err != nil {
 			panic("No se pudo conectar con el servidor" + err.Error())
@@ -124,129 +96,75 @@ func main() {
 			panic("No se puede crear el mensaje " + err.Error())
 		}
 
-		//Recibe el nombre del equipo elegido por el lab. El equipo elegido
-		//cambia su valor a false ¿pero q lab?
-		if resDisp.Equipox == "equipo1" {
-			equipo1_ = false //Equipo ocupa contenienndo a los bichos
-			res, err := serviceCliente.ContencionStatus(
-				context.Background(),
-				&pb.Message{
-					Body: "Revisando estado Escuadrón: ",
-				})
-			if err != nil {
-				panic("No se puede crear el mensaje " + err.Error())
-			}
-			//log.Println(res.Status, res.Body) //respuesta del laboratorio
-			//Si esta contenido el estallido, ¿el lab cierra conexión con la central?
-			if res.Status.String() == "NOLISTO" {
-				//Checkea estado contencion
-				log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
-				time.Sleep(5 * time.Second) //espera de 5 segundos
-			} else {
-				log.Println("_Status Escuadra X: " + res.Status.String() + " " + res.Body)
-				//connS.Close()
-				if res.Body == "equipo1" {
-					log.Println("if del equipo1")
-					equipo1_ = true //disponible
+		//Recibe el nombre del equipo elegido y el nombre del lab. El equipo elegido
+		//cambia su valor a false => equipo está ocupado
+		if resDisp.Equipox == "Escuadra1" {
+			equipo1_ = false
+			primeraLlegada := true
+			escuadronNoListo := true
+			log.Println("Se envía " + resDisp.Equipox + " a Laboratorio " + resDisp.NombreLab)
+
+			for escuadronNoListo {
+				//Se manda el escuadron al lab
+				res, err := serviceCliente.ContencionStatus(
+					context.Background(),
+					&pb.EquipoEnviadoPorCentral{
+						Eepc:           resDisp.Equipox, //se manda el equipo al laboratorio
+						PrimeraLlegada: primeraLlegada,
+					})
+				if err != nil {
+					panic("No se puede crear el mensaje " + err.Error())
 				}
 
-				if res.Body == "equipo2" {
-					log.Println("if del equipo2")
-					equipo2_ = true //disponible
+				//Se recibe el estado de contencion y nombre del escuadron
+				//Si el estallido está contenido, se cierra la conexión con el lab
+				if res.Status.String() == "NOLISTO" {
+					log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
+					time.Sleep(5 * time.Second) //espera de 5 segundos
+					primeraLlegada = false
+				} else {
+					escuadronNoListo = false
+					log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
+					equipo1_ = true //vuelve a quedar disponible
+					connS.Close()   //Se cierra la conexión
 				}
 			}
-		} else if resDisp.Equipox == "equipo2" {
-			equipo2_ = false
-			res, err := serviceCliente.ContencionStatus(
-				context.Background(),
-				&pb.Message{
-					Body: "Revisando estado Escuadrón: ",
-				})
-			if err != nil {
-				panic("No se puede crear el mensaje " + err.Error())
-			}
-			//log.Println(res.Status, res.Body) //respuesta del laboratorio
-			//Si esta contenido el estallido, ¿el lab cierra conexión con la central?
-			if res.Status.String() == "NOLISTO" {
-				//Checkea estado contencion
-				log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
-				time.Sleep(5 * time.Second) //espera de 5 segundos
-			} else {
-				log.Println("_Status Escuadra X: " + res.Status.String() + " " + res.Body)
-				//connS.Close()
-				if res.Body == "equipo1" {
-					log.Println("if del equipo1")
-					equipo1_ = true //disponible
+
+		} else if resDisp.Equipox == "Escuadra2" {
+			equipo1_ = false
+			primeraLlegada := true
+			escuadronNoListo := true
+			log.Println("Se envía " + resDisp.Equipox + " a Laboratorio " + resDisp.NombreLab)
+
+			for escuadronNoListo {
+				//Se manda el escuadron al lab
+				res, err := serviceCliente.ContencionStatus(
+					context.Background(),
+					&pb.EquipoEnviadoPorCentral{
+						Eepc:           resDisp.Equipox, //se manda el equipo al laboratorio
+						PrimeraLlegada: primeraLlegada,
+					})
+				if err != nil {
+					panic("No se puede crear el mensaje " + err.Error())
 				}
 
-				if res.Body == "equipo2" {
-					log.Println("if del equipo2")
-					equipo2_ = true //disponible
+				//Se recibe el estado de contencion y nombre del escuadron
+				//Si el estallido está contenido, se cierra la conexión con el lab
+				if res.Status.String() == "NOLISTO" {
+					log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
+					time.Sleep(5 * time.Second) //espera de 5 segundos
+					primeraLlegada = false
+				} else {
+					escuadronNoListo = false
+					log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
+					equipo2_ = true //vuelve a quedar disponible
+					connS.Close()   //Se cierra la conexión
 				}
 			}
+		} else if resDisp.Equipox == "NOHAYESCUADRA" {
+			/*La idea es q Solo se consuman msg de rabbit cuando exista al menos un equipo
+			disponible en la central*/
 		}
-
-		/*****************Estado Contencion*********************/
-		// log.Println("equpo1_", equipo1_)
-		// if !equipo1_ {
-
-		// 	res, err := serviceCliente.ContencionStatus(
-		// 		context.Background(),
-		// 		&pb.Message{
-		// 			Body: "Revisando estado Escuadrón: ",
-		// 		})
-		// 	if err != nil {
-		// 		panic("No se puede crear el mensaje " + err.Error())
-		// 	}
-		// 	//log.Println(res.Status, res.Body) //respuesta del laboratorio
-		// 	//Si esta contenido el estallido, ¿el lab cierra conexión con la central?
-		// 	if res.Status.String() == "NOLISTO" {
-		// 		//Checkea estado contencion
-		// 		log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
-		// 		time.Sleep(5 * time.Second) //espera de 5 segundos
-		// 	} else {
-		// 		log.Println("_Status Escuadra X: " + res.Status.String() + " " + res.Body)
-		// 		//connS.Close()
-		// 		if res.Body == "equipo1" {
-		// 			log.Println("if del equipo1")
-		// 			equipo1_ = true //disponible
-		// 		} else if res.Body == "equipo2" {
-		// 			log.Println("if del equipo2")
-		// 			equipo2_ = true //disponible
-		// 		}
-		// 	}
-		// }
-
-		// log.Println("equpo2_", equipo2_)
-		// if !equipo2_ {
-
-		// 	res, err := serviceCliente.ContencionStatus(
-		// 		context.Background(),
-		// 		&pb.Message{
-		// 			Body: "Revisando estado Escuadrón: ",
-		// 		})
-		// 	if err != nil {
-		// 		panic("No se puede crear el mensaje " + err.Error())
-		// 	}
-		// 	//log.Println(res.Status, res.Body) //respuesta del laboratorio
-		// 	//Si esta contenido el estallido, ¿el lab cierra conexión con la central?
-		// 	if res.Status.String() == "NOLISTO" {
-		// 		//Checkea estado contencion
-		// 		log.Println("Status Escuadra X: " + res.Status.String() + " " + res.Body)
-		// 		time.Sleep(5 * time.Second) //espera de 5 segundos
-		// 	} else {
-		// 		log.Println("_Status Escuadra X: " + res.Status.String() + " " + res.Body)
-		// 		//connS.Close()
-		// 		if res.Body == "equipo1" {
-		// 			//log.Println("if del equipo1")
-		// 			equipo1_ = true //disponible
-		// 		} else if res.Body == "equipo2" {
-		// 			//log.Println("if del equipo2")
-		// 			equipo2_ = true //disponible
-		// 		}
-		// 	}
-		// }
-
 	}
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever

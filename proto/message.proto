@@ -14,7 +14,7 @@ message Contencion {
         NOLISTO = 1;
     }
     contencionStatus status = 2;
-    string body = 3;
+    string nombreEscuadron = 3;//nombre escuadron
 }
 
 message Escuadron{
@@ -24,11 +24,18 @@ message Escuadron{
 
 message EscuadronUsar{
     string equipox = 1;
+    string nombreLab = 2;
+}
+
+message EquipoEnviadoPorCentral{
+    string eepc = 1;
+    bool primeraLlegada = 4;
 }
 
 service MessageService {
     rpc Intercambio (Message) returns (Message);
-    rpc ContencionStatus (Message) returns (Contencion);
+    rpc ContencionStatus (EquipoEnviadoPorCentral) returns (Contencion);
     rpc CheckDispEscuadron (Escuadron) returns (EscuadronUsar);
 }
 
+//rpc nombrefun (msgcentral) returns (msglab)

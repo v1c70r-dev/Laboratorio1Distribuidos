@@ -3,7 +3,8 @@ package main
 import (
 	pb "Laboratorio1Distribuidos/proto"
 	"context"
-	"fmt"
+
+	//"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -11,6 +12,10 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/grpc"
+)
+
+var (
+	labName = "labRenca" //nombre del laboratorio
 )
 
 func failOnError(err error, msg string) {
@@ -24,44 +29,52 @@ type server struct {
 	pb.UnimplementedMessageServiceServer
 }
 
-func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Contencion, error) {
-	ecs := pb.Contencion_NOLISTO
-	estadoContencion := ""
-	if contencion() {
-		estadoContencion = "[LISTO]"
-		ecs = pb.Contencion_LISTO
-		//se cierra la conexión
-		//CLOSE_SYNCHRONOUS_CONNECTION = true
+/*
+Recibe al escuadron enviado por la central, y se evalua el estado de contención.
+Retorna el estado de la contención y el nombre del escuadron
+*/
+func (s *server) ContencionStatus(ctx context.Context, msg *pb.EquipoEnviadoPorCentral) (*pb.Contencion, error) {
+	equipoEnviadoPorLaCentral := msg.Eepc
+	ecs := pb.Contencion_NOLISTO //ecs estado de contencion
+
+	if msg.PrimeraLlegada {
+		log.Println("Llega " + equipoEnviadoPorLaCentral + ", conteniendo estallido...")
 	} else {
-		estadoContencion = "[NO LISTO]"
+		log.Println("conteniendo estallido...")
+	}
+
+	//Se evalua estado de contencion
+	if contencion() {
+		ecs = pb.Contencion_LISTO
+	} else {
 		ecs = pb.Contencion_NOLISTO
 	}
-	log.Println(msg.Body + estadoContencion)
-	return &pb.Contencion{Status: ecs, Body: equipoUsado}, nil
+
+	return &pb.Contencion{Status: ecs, NombreEscuadron: equipoEnviadoPorLaCentral}, nil
 }
 
+/*
+Recibe un msg desde la central con valor bool para cada escuadron
+ej equipo1:true, equipo2:false
+El valor true indica que el equipo está disponible, false indica lo contrario
+
+El lab retorna un msg con el nombre del escuadron a usar y el nombre del lab
+*/
 func (s *server) CheckDispEscuadron(ctx context.Context, msg *pb.Escuadron) (*pb.EscuadronUsar, error) {
 	equipo_a_usar := ""
 	if msg.Equipo1 {
-		equipo_a_usar = "equipo1"
+		equipo_a_usar = "Escuadra1"
 	} else if msg.Equipo2 {
-		equipo_a_usar = "equipo2"
+		equipo_a_usar = "Escuadra2"
 	} else {
-		equipo_a_usar = "NOHAYEQUIPO"
+		equipo_a_usar = "NOHAYESCUADRA"
 	}
-	equipoUsado = equipo_a_usar
-	return &pb.EscuadronUsar{Equipox: equipo_a_usar}, nil
+	return &pb.EscuadronUsar{Equipox: equipo_a_usar, NombreLab: labName}, nil
 }
 
-var (
-	equipoUsado = ""
-)
-
 func main() {
-
-	labName := "labRenca" //nombre del laboratorio
-	helpQueue := "SOS"    //nombre de la cola
-	hostQ := "localhost"  //ip del servidor de RabbitMQ 172.17.0.1
+	helpQueue := "SOS"   //nombre de la cola
+	hostQ := "localhost" //ip del servidor de RabbitMQ 172.17.0.1
 
 	/******************Conexión cola síncrona (proto)******************/
 	go func() {
@@ -128,7 +141,7 @@ func Estallido(lab_name string) string {
 	for range c {
 		estadoEstallido = statusUpdateEstallido()
 		if estadoEstallido {
-			fmt.Println("SOS Enviado a Central. Esperando respuesta...")
+			log.Println("SOS Enviado a Central. Esperando respuesta...")
 			return lab_name
 		}
 	}
@@ -145,10 +158,10 @@ func statusUpdateEstallido() bool {
 
 	if random < 5 {
 		estallido = true //true
-		fmt.Println("Analizando estado Laboratorio: [ESTALLIDO]")
+		log.Println("Analizando estado Laboratorio: [ESTALLIDO]")
 	} else {
 		estallido = false //false
-		fmt.Println("Analizando estado Laboratorio: [OK]")
+		log.Println("Analizando estado Laboratorio: [OK]")
 	}
 
 	return estallido
@@ -166,10 +179,10 @@ func contencion() bool {
 	random := rand.Intn(max-min) + min
 	if random < 4 {
 		contencion = true
-		// log.Println("Revisando estado Escuadrón: [ LISTO ]")
+		log.Println("Revisando estado Escuadrón: [ LISTO ]")
 	} else {
 		contencion = false
-		// log.Println("Revisando estado Escuadrón: [ NO LISTO ]")
+		log.Println("Revisando estado Escuadrón: [ NO LISTO ]")
 	}
 
 	return contencion
