@@ -4,8 +4,9 @@ package grpc;
 
 option go_package = "github.com/v1c70r-dev/Laboratorio1Distribuidos/proto";
 
-message Message {
-    string body = 1;
+message MessageTermino {
+    bool endSignal = 1;
+    string msgFin = 2;
 }
 
 message Contencion {
@@ -33,7 +34,7 @@ message EquipoEnviadoPorCentral{
 }
 
 service MessageService {
-    rpc Intercambio (Message) returns (Message);
+    rpc FinPrograma (MessageTermino) returns (MessageTermino);
     rpc ContencionStatus (EquipoEnviadoPorCentral) returns (Contencion);
     rpc CheckDispEscuadron (Escuadron) returns (EscuadronUsar);
 }

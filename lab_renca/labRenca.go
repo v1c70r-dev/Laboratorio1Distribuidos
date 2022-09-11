@@ -75,6 +75,15 @@ func (s *server) CheckDispEscuadron(ctx context.Context, msg *pb.Escuadron) (*pb
 	return &pb.EscuadronUsar{Equipox: equipo_a_usar, NombreLab: labName}, nil
 }
 
+func (s *server) FinPrograma(ctx context.Context, msgCentral *pb.MessageTermino) (*pb.MessageTermino, error) {
+	msgACentral := ""
+	if msgCentral.EndSignal {
+		msgACentral = labName + " a terminado su ejecución"
+		//os.Exit(1)
+	}
+	return &pb.MessageTermino{EndSignal: true, MsgFin: msgACentral}, nil
+}
+
 func main() {
 	helpQueue := "SOS"   //nombre de la cola
 	hostQ := "localhost" //ip del servidor de RabbitMQ 172.17.0.1

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 
 	"time"
 
@@ -180,6 +182,64 @@ func main() {
 		// 	disponible en la central*/
 		// 	log.Println("NOHAYESCUADRA")
 		// }
+
+		// go func() {
+		// 	// Fin ejecucion programa
+		// 	// Capturar ctrl + c
+		// 	c := make(chan os.Signal, 1)
+		// 	signal.Notify(c, os.Interrupt)
+
+		// 	for sig := range c {
+
+		// 		log.Println(sig)
+		// 		// Proto mande msg manera sincrona a todos los labs
+		// 		resFin, errFin := serviceCliente.FinPrograma(
+		// 			context.Background(),
+		// 			&pb.MessageTermino{
+		// 				EndSignal: true,
+		// 				MsgFin:    "Lab termine su ejecucion",
+		// 			})
+		// 		if errFin != nil {
+		// 			panic("No se puede crear el mensaje " + err.Error())
+		// 		}
+
+		// 		//lab envian señal de vuelta -> 4 señales antes de morir
+		// 		log.Println(resFin.MsgFin)
+		// 		// sig is a ^C, handle it
+		// 		time.Sleep(1 * time.Second)
+		// 		//os.Exit(1)
+		// 	}
+
+		// 	// lab confirman
+		// 	// se terminan de ejecutar
+
+		// }()
+
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		go func() {
+			for sig := range c {
+				// sig is a ^C, handle it
+				// Proto mande msg manera sincrona a todos los labs
+				// resFin, errFin := serviceCliente.FinPrograma(
+				// 	context.Background(),
+				// 	&pb.MessageTermino{
+				// 		EndSignal: true,
+				// 		MsgFin:    "Lab termine su ejecucion",
+				// 	})
+				// if errFin != nil {
+				// 	panic("No se puede crear el mensaje " + err.Error())
+				// }
+				// //lab envian señal de vuelta -> 4 señales antes de morir
+				// log.Println(resFin.MsgFin)
+				// log.Println(sig)
+				// if resFin.EndSignal {
+				// 	log.Println("SEACABO!!")
+				// 	//os.Exit(1)
+				// }
+				log.Println(sig)
+			}
+		}()
 	}
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")

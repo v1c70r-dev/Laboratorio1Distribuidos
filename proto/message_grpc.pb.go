@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MessageServiceClient interface {
-	Intercambio(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
+	FinPrograma(ctx context.Context, in *MessageTermino, opts ...grpc.CallOption) (*MessageTermino, error)
 	ContencionStatus(ctx context.Context, in *EquipoEnviadoPorCentral, opts ...grpc.CallOption) (*Contencion, error)
 	CheckDispEscuadron(ctx context.Context, in *Escuadron, opts ...grpc.CallOption) (*EscuadronUsar, error)
 }
@@ -35,9 +35,9 @@ func NewMessageServiceClient(cc grpc.ClientConnInterface) MessageServiceClient {
 	return &messageServiceClient{cc}
 }
 
-func (c *messageServiceClient) Intercambio(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
-	out := new(Message)
-	err := c.cc.Invoke(ctx, "/grpc.MessageService/Intercambio", in, out, opts...)
+func (c *messageServiceClient) FinPrograma(ctx context.Context, in *MessageTermino, opts ...grpc.CallOption) (*MessageTermino, error) {
+	out := new(MessageTermino)
+	err := c.cc.Invoke(ctx, "/grpc.MessageService/FinPrograma", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *messageServiceClient) CheckDispEscuadron(ctx context.Context, in *Escua
 // All implementations must embed UnimplementedMessageServiceServer
 // for forward compatibility
 type MessageServiceServer interface {
-	Intercambio(context.Context, *Message) (*Message, error)
+	FinPrograma(context.Context, *MessageTermino) (*MessageTermino, error)
 	ContencionStatus(context.Context, *EquipoEnviadoPorCentral) (*Contencion, error)
 	CheckDispEscuadron(context.Context, *Escuadron) (*EscuadronUsar, error)
 	mustEmbedUnimplementedMessageServiceServer()
@@ -76,8 +76,8 @@ type MessageServiceServer interface {
 type UnimplementedMessageServiceServer struct {
 }
 
-func (UnimplementedMessageServiceServer) Intercambio(context.Context, *Message) (*Message, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Intercambio not implemented")
+func (UnimplementedMessageServiceServer) FinPrograma(context.Context, *MessageTermino) (*MessageTermino, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinPrograma not implemented")
 }
 func (UnimplementedMessageServiceServer) ContencionStatus(context.Context, *EquipoEnviadoPorCentral) (*Contencion, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ContencionStatus not implemented")
@@ -98,20 +98,20 @@ func RegisterMessageServiceServer(s grpc.ServiceRegistrar, srv MessageServiceSer
 	s.RegisterService(&MessageService_ServiceDesc, srv)
 }
 
-func _MessageService_Intercambio_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Message)
+func _MessageService_FinPrograma_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MessageTermino)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MessageServiceServer).Intercambio(ctx, in)
+		return srv.(MessageServiceServer).FinPrograma(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.MessageService/Intercambio",
+		FullMethod: "/grpc.MessageService/FinPrograma",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).Intercambio(ctx, req.(*Message))
+		return srv.(MessageServiceServer).FinPrograma(ctx, req.(*MessageTermino))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -160,8 +160,8 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*MessageServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Intercambio",
-			Handler:    _MessageService_Intercambio_Handler,
+			MethodName: "FinPrograma",
+			Handler:    _MessageService_FinPrograma_Handler,
 		},
 		{
 			MethodName: "ContencionStatus",
