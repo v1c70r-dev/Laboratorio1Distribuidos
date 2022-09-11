@@ -26,7 +26,6 @@ type server struct {
 
 func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Contencion, error) {
 	ecs := pb.Contencion_NOLISTO
-	puerto := "50055"
 	estadoContencion := ""
 	if contencion() {
 		estadoContencion = "[LISTO]"
@@ -38,11 +37,25 @@ func (s *server) ContencionStatus(ctx context.Context, msg *pb.Message) (*pb.Con
 		ecs = pb.Contencion_NOLISTO
 	}
 	log.Println(msg.Body + estadoContencion)
-	return &pb.Contencion{Status: ecs, Body: puerto}, nil
+	return &pb.Contencion{Status: ecs, Body: equipoUsado}, nil
 }
 
-// var global
-//var grpcServer *grpc.Server
+func (s *server) CheckDispEscuadron(ctx context.Context, msg *pb.Escuadron) (*pb.EscuadronUsar, error) {
+	equipo_a_usar := ""
+	if msg.Equipo1 {
+		equipo_a_usar = "equipo1"
+	} else if msg.Equipo2 {
+		equipo_a_usar = "equipo2"
+	} else {
+		equipo_a_usar = "NOHAYEQUIPO"
+	}
+	equipoUsado = equipo_a_usar
+	return &pb.EscuadronUsar{Equipox: equipo_a_usar}, nil
+}
+
+var (
+	equipoUsado = ""
+)
 
 func main() {
 

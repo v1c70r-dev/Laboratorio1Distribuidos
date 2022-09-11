@@ -17,13 +17,18 @@ message Contencion {
     string body = 3;
 }
 
-message TerminarConnMsg{
-    string body = 1;
+message Escuadron{
+    bool equipo1 = 1;
+    bool equipo2 = 2;
+}
+
+message EscuadronUsar{
+    string equipox = 1;
 }
 
 service MessageService {
     rpc Intercambio (Message) returns (Message);
     rpc ContencionStatus (Message) returns (Contencion);
-    rpc TerminarConn(TerminarConnMsg) returns (TerminarConnMsg);
+    rpc CheckDispEscuadron (Escuadron) returns (EscuadronUsar);
 }
 
