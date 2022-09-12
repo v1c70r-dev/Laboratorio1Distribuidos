@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
+
+	// "os"
+	// "os/signal"
+
+	//"syscall"
 
 	"time"
 
@@ -17,9 +20,12 @@ import (
 
 // labRenca, labPohang, labPripiat, labKampala
 var (
-	puertos  = [4]string{":50051", ":50055", ":50059", ":50063"}
-	equipo1_ = true //disponibilidad
-	equipo2_ = true
+	puertos   = [4]string{":50051", ":50055", ":50059", ":50063"}
+	helpQueue = "SOS"       //Nombre de la cola
+	hostQ     = "localhost" //Host de RabbitMQ 172.17.0.1
+	hostS     = "localhost" //Host de un Laboratorio
+	equipo1_  = true        //disponibilidad
+	equipo2_  = true
 )
 
 func failOnError(err error, msg string) {
@@ -30,9 +36,6 @@ func failOnError(err error, msg string) {
 
 func main() {
 
-	helpQueue := "SOS"                                              //Nombre de la cola
-	hostQ := "localhost"                                            //Host de RabbitMQ 172.17.0.1
-	hostS := "localhost"                                            //Host de un Laboratorio
 	conn, err := amqp.Dial("amqp://guest:guest@" + hostQ + ":5672") //Conexion con RabbitMQ
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -104,13 +107,11 @@ func main() {
 		//cambia su valor a false => equipo está ocupado
 
 		go func() {
-
 			if resDisp.Equipox == "Escuadra1" {
 				equipo1_ = false
 				primeraLlegada := true
 				escuadronNoListo := true
 				log.Println("Se envía " + resDisp.Equipox + " a Laboratorio " + resDisp.NombreLab)
-
 				for escuadronNoListo {
 					//Se manda el escuadron al lab
 					res, err := serviceCliente.ContencionStatus(
@@ -122,7 +123,6 @@ func main() {
 					if err != nil {
 						panic("No se puede crear el mensaje " + err.Error())
 					}
-
 					//Se recibe el estado de contencion y nombre del escuadron
 					//Si el estallido está contenido, se cierra la conexión con el lab
 					if res.Status.String() == "NOLISTO" {
@@ -137,7 +137,6 @@ func main() {
 						connS.Close()   //Se cierra la conexión
 					}
 				}
-
 			}
 		}()
 
@@ -147,7 +146,6 @@ func main() {
 				primeraLlegada := true
 				escuadronNoListo := true
 				log.Println("Se envía " + resDisp.Equipox + " a Laboratorio " + resDisp.NombreLab)
-
 				for escuadronNoListo {
 					//Se manda el escuadron al lab
 					res, err := serviceCliente.ContencionStatus(
@@ -159,11 +157,10 @@ func main() {
 					if err != nil {
 						panic("No se puede crear el mensaje " + err.Error())
 					}
-
 					//Se recibe el estado de contencion y nombre del escuadron
 					//Si el estallido está contenido, se cierra la conexión con el lab
 					if res.Status.String() == "NOLISTO" {
-						log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String() + resDisp.Equipox)
+						log.Println("Status " + res.NombreEscuadron + ": " + res.Status.String())
 						time.Sleep(5 * time.Second) //espera de 5 segundos
 						primeraLlegada = false
 					} else {
@@ -174,70 +171,6 @@ func main() {
 						connS.Close()   //Se cierra la conexión
 					}
 				}
-			}
-		}()
-
-		// else if resDisp.Equipox == "NOHAYESCUADRA" {
-		// 	/*La idea es q Solo se consuman msg de rabbit cuando exista al menos un equipo
-		// 	disponible en la central*/
-		// 	log.Println("NOHAYESCUADRA")
-		// }
-
-		// go func() {
-		// 	// Fin ejecucion programa
-		// 	// Capturar ctrl + c
-		// 	c := make(chan os.Signal, 1)
-		// 	signal.Notify(c, os.Interrupt)
-
-		// 	for sig := range c {
-
-		// 		log.Println(sig)
-		// 		// Proto mande msg manera sincrona a todos los labs
-		// 		resFin, errFin := serviceCliente.FinPrograma(
-		// 			context.Background(),
-		// 			&pb.MessageTermino{
-		// 				EndSignal: true,
-		// 				MsgFin:    "Lab termine su ejecucion",
-		// 			})
-		// 		if errFin != nil {
-		// 			panic("No se puede crear el mensaje " + err.Error())
-		// 		}
-
-		// 		//lab envian señal de vuelta -> 4 señales antes de morir
-		// 		log.Println(resFin.MsgFin)
-		// 		// sig is a ^C, handle it
-		// 		time.Sleep(1 * time.Second)
-		// 		//os.Exit(1)
-		// 	}
-
-		// 	// lab confirman
-		// 	// se terminan de ejecutar
-
-		// }()
-
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		go func() {
-			for sig := range c {
-				// sig is a ^C, handle it
-				// Proto mande msg manera sincrona a todos los labs
-				// resFin, errFin := serviceCliente.FinPrograma(
-				// 	context.Background(),
-				// 	&pb.MessageTermino{
-				// 		EndSignal: true,
-				// 		MsgFin:    "Lab termine su ejecucion",
-				// 	})
-				// if errFin != nil {
-				// 	panic("No se puede crear el mensaje " + err.Error())
-				// }
-				// //lab envian señal de vuelta -> 4 señales antes de morir
-				// log.Println(resFin.MsgFin)
-				// log.Println(sig)
-				// if resFin.EndSignal {
-				// 	log.Println("SEACABO!!")
-				// 	//os.Exit(1)
-				// }
-				log.Println(sig)
 			}
 		}()
 	}
